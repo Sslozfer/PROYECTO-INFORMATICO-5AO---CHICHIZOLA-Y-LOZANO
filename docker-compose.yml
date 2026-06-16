@@ -1,0 +1,61 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: borasi
+    ports:
+      - '5433:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./database/migration_v4_hiring.sql:/docker-entrypoint-initdb.d/02_migration.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend/api/
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: borasi
+      DB_SSL: 'false'
+      JWT_SECRET: algo-largo-aleatorio-aqui-minimo-32-caracteres-de-seguridad
+      JWT_REFRESH_SECRET: otro-secreto-diferente-y-largo-para-el-refresh-token
+      PORT: 3000
+      FRONTEND_URL: http://localhost:3003
+      ANTHROPIC_API_KEY: ''
+    ports:
+      - '3002:3000'
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3002
+        NEXT_PUBLIC_APP_URL: http://localhost:3003
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3002
+      NEXT_PUBLIC_APP_URL: http://localhost:3003
+    ports:
+      - '3003:3001'
+
+volumes:
+  pgdata:
