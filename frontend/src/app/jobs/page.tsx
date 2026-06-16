@@ -1,6 +1,6 @@
 'use client';
 
-import RoleGuard from '@/components/auth/RoleGuard';
+import { RoleGuard } from '@/components/common/RoleGuard';
 import React, { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent } from '@/components/common/Card';
@@ -148,5 +148,6 @@ export default function JobsPage() {
         </div>
       </div>
     </MainLayout>
+    </RoleGuard>
   );
 }
