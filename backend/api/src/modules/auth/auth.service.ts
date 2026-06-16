@@ -43,7 +43,7 @@ export class AuthService {
     const password_hash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
     const role = dto.role ?? 'user';
 
-    let companyId: number | null = null;
+    let companyId: number | undefined;
 
     // Si es cuenta de empresa, crear la Company automáticamente
     if (role === 'company') {

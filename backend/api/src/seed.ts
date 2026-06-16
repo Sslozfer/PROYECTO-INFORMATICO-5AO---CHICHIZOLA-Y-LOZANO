@@ -35,8 +35,7 @@ loadEnv();
 
 const PASSWORD = 'password123';
 
-async function main() {
-  casync function main() {
+  async function main() {
     const client = new Client({
       connectionString:
         process.env.DATABASE_PUBLIC_URL ||
