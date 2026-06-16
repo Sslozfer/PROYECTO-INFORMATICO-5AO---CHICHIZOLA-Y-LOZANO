@@ -31,22 +31,16 @@ export class HiringController {
 
   // ─── Candidato ────────────────────────────────────────────────────────────────
 
-  @UseGuards(RolesGuard)
-  @Roles('user', 'admin')
   @Post('apply/:jobPostId')
   apply(@Param('jobPostId', ParseIntPipe) jobPostId: number, @Req() req) {
     return this.hiringService.apply(req.user.id, jobPostId);
   }
 
-  @UseGuards(RolesGuard)
-  @Roles('user', 'admin')
   @Get('my-applications')
   getMyApplications(@Req() req) {
     return this.hiringService.getMyApplications(req.user.id);
   }
 
-  @UseGuards(RolesGuard)
-  @Roles('user', 'admin')
   @Patch('applications/:id/respond')
   respondToOffer(
     @Param('id', ParseIntPipe) id: number,
@@ -56,8 +50,6 @@ export class HiringController {
     return this.hiringService.respondToOffer(req.user.id, id, dto.accept, dto.reason);
   }
 
-  @UseGuards(RolesGuard)
-  @Roles('user', 'admin')
   @Patch('applications/:id/withdraw')
   withdraw(@Param('id', ParseIntPipe) id: number, @Req() req) {
     return this.hiringService.withdraw(req.user.id, id);

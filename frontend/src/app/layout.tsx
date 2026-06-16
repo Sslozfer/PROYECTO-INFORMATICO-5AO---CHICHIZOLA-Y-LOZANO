@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {
-  title: 'Borasi — Reputación Laboral Verificable',
+  title: 'TrustScore — Reputación Laboral Verificable',
   description: 'Sistema de reputación laboral analítico y verificable',
 };
 

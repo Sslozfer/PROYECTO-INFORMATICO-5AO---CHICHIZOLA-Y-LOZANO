@@ -186,7 +186,7 @@ function CompanySettings() {
               onChange={(e) => setDomain(e.target.value)}
             />
             <p className="text-xs text-gray-400 mt-1">
-              El dominio se verifica manualmente por el equipo de Borasi.
+              El dominio se verifica manualmente por el equipo de TrustScore.
             </p>
           </div>
           <div>

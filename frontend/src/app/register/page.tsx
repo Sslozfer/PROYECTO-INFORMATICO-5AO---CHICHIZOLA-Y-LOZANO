@@ -1,49 +1,35 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { Card, CardContent, CardHeader } from '@/components/common/Card';
-import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
 
-const registerSchema = z
-  .object({
-    name: z.string().min(2, 'Mínimo 2 caracteres'),
-    email: z.string().email('Email inválido'),
-    password: z.string().min(8, 'Mínimo 8 caracteres'),
-    confirmPassword: z.string(),
-    role: z.enum(['user', 'company']),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: 'Las contraseñas no coinciden',
-    path: ['confirmPassword'],
-  });
-
-type RegisterFormData = z.infer<typeof registerSchema>;
+type Role = 'user' | 'company';
 
 export default function RegisterPage() {
   const router = useRouter();
   const { register: registerUser, isLoading } = useAuthStore();
-  const [error, setError] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: { role: 'user' },
-  });
+  const [role,        setRole]        = useState<Role>('user');
+  const [name,        setName]        = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [domain,      setDomain]      = useState('');
+  const [email,       setEmail]       = useState('');
+  const [password,    setPassword]    = useState('');
+  const [confirm,     setConfirm]     = useState('');
+  const [error,       setError]       = useState<string | null>(null);
 
-  const onSubmit = async (data: RegisterFormData) => {
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirm) { setError('Las contraseñas no coinciden'); return; }
+    if (password.length < 8)  { setError('La contraseña debe tener al menos 8 caracteres'); return; }
     setError(null);
     try {
-      await registerUser(data.name, data.email, data.password, data.role);
+      await registerUser(name, email, password, role, companyName || undefined, domain || undefined);
       router.push('/dashboard');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al registrarse');
@@ -55,66 +41,121 @@ export default function RegisterPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <h1 className="text-2xl font-bold text-gray-900">Crear cuenta</h1>
-          <p className="text-sm text-gray-500 mt-1">Únete a Borasi</p>
+          <p className="text-sm text-gray-500 mt-1">Únete a TrustScore</p>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={onSubmit} className="space-y-4">
             {error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
                 {error}
               </div>
             )}
 
+            {/* Tipo de cuenta */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
-              <Input placeholder="Tu nombre" error={errors.name?.message} {...register('name')} />
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tipo de cuenta
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {(['user', 'company'] as Role[]).map(r => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setRole(r)}
+                    className={`py-2 rounded-lg text-sm font-medium border transition-colors ${
+                      role === r
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'border-gray-300 text-gray-700 hover:border-blue-400'
+                    }`}
+                  >
+                    {r === 'user' ? '👤 Profesional' : '🏢 Empresa'}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {/* Nombre */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {role === 'company' ? 'Tu nombre (responsable)' : 'Nombre completo'}
+              </label>
+              <Input
+                placeholder="Juan García"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Campos extra para empresa */}
+            {role === 'company' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nombre de la empresa
+                  </label>
+                  <Input
+                    placeholder="TechCorp S.A."
+                    value={companyName}
+                    onChange={e => setCompanyName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Dominio <span className="text-gray-400">(opcional)</span>
+                  </label>
+                  <Input
+                    placeholder="techcorp.com"
+                    value={domain}
+                    onChange={e => setDomain(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <Input type="email" placeholder="tu@email.com" error={errors.email?.message} {...register('email')} />
+              <Input
+                type="email"
+                placeholder="correo@ejemplo.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+              />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-              <Input type="password" placeholder="Mínimo 8 caracteres" error={errors.password?.message} {...register('password')} />
+              <Input
+                type="password"
+                placeholder="Mínimo 8 caracteres"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+              />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar contraseña</label>
-              <Input type="password" placeholder="Repite la contraseña" error={errors.confirmPassword?.message} {...register('confirmPassword')} />
+              <Input
+                type="password"
+                placeholder="Repetir contraseña"
+                value={confirm}
+                onChange={e => setConfirm(e.target.value)}
+                required
+              />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de cuenta</label>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { value: 'user', label: 'Profesional', desc: 'Busco trabajo o evaluaciones' },
-                  { value: 'company', label: 'Empresa', desc: 'Contrato y evalúo talento' },
-                ].map((opt) => (
-                  <label
-                    key={opt.value}
-                    className="flex flex-col gap-1 p-3 border rounded-lg cursor-pointer hover:border-blue-400 transition-colors has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50"
-                  >
-                    <input type="radio" value={opt.value} {...register('role')} className="sr-only" />
-                    <span className="font-medium text-sm text-gray-900">{opt.label}</span>
-                    <span className="text-xs text-gray-500">{opt.desc}</span>
-                  </label>
-                ))}
-              </div>
-              {errors.role && <p className="text-red-500 text-sm mt-1">{errors.role.message}</p>}
-            </div>
-
-            <Button type="submit" isLoading={isLoading} className="w-full" size="lg">
+            <Button type="submit" className="w-full" isLoading={isLoading}>
               Crear cuenta
             </Button>
 
-            <div className="text-center text-sm">
-              <span className="text-gray-600">¿Ya tienes cuenta? </span>
+            <p className="text-center text-sm text-gray-500">
+              ¿Ya tenés cuenta?{' '}
               <Link href="/login" className="text-blue-600 hover:underline font-medium">
-                Inicia sesión
+                Iniciar sesión
               </Link>
-            </div>
+            </p>
           </form>
         </CardContent>
       </Card>

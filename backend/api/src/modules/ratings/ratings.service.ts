@@ -285,15 +285,23 @@ export class RatingsService {
 
     const availableSources: ('employer' | 'peer' | 'client')[] = [];
 
-    // Employer: el fromUser tiene role 'company' y está en la misma empresa que toUser
-    if (fromUserRole === 'company' && sharedCompanyIds.length > 0)
-      availableSources.push('employer');
+    // Employer: cuentas company que tienen al toUser como empleado en su empresa
+    if (fromUserRole === 'company') {
+      const fromCompanyRow: { company_id: number }[] = await em.query(
+        `SELECT company_id FROM users WHERE id = $1 AND company_id IS NOT NULL`,
+        [fromUserId],
+      );
+      const coId = fromCompanyRow[0]?.company_id;
+      if (coId && toCompanyIds.includes(coId)) {
+        availableSources.push('employer');
+      }
+    }
 
-    // Peer: ambos tienen empleos en la misma empresa (y fromUser no es empresa)
+    // Peer: ambos tienen empleos en la misma empresa (fromUser no es company)
     if (fromUserRole !== 'company' && sharedCompanyIds.length > 0)
       availableSources.push('peer');
 
-    // Client: cualquiera (sin restricción de empresa compartida)
+    // Client: SIEMPRE disponible (cualquier usuario puede ser cliente)
     availableSources.push('client');
 
     // job_type_ids de los empleos del toUser

@@ -8,6 +8,7 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { JwtRefreshStrategy } from './jwt-refresh.strategy';
 import { User } from '../users/users.entity';
+import { Company } from '../companies/company.entity';
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { User } from '../users/users.entity';
         signOptions: { expiresIn: '15m' },
       }),
     }),
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, Company]),
   ],
   controllers: [AuthController],
   providers:   [AuthService, JwtStrategy, JwtRefreshStrategy],

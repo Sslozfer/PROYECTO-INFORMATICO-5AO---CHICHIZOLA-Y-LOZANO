@@ -26,4 +26,3 @@ coverage/
 .DS_Store
 .vscode/
 .idea/
-!.env.example

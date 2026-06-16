@@ -47,7 +47,7 @@ export function LoginForm() {
           <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center">
             <Trophy className="w-5 h-5 text-white" />
           </div>
-          <span className="text-2xl font-bold text-gray-900">Borasi</span>
+          <span className="text-2xl font-bold text-gray-900">TrustScore</span>
         </div>
         <h1 className="text-xl font-semibold text-gray-900">Iniciar sesión</h1>
         <p className="text-sm text-gray-500 mt-1">Reputación laboral verificable</p>

@@ -1,12 +1,12 @@
 import {
-  Controller, Post, Get, Body, Param,
+  Controller, Post, Get, Patch, Body, Param,
   Req, BadRequestException, ParseIntPipe,
   UploadedFile, UseInterceptors, UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { EmploymentsService } from './employments.service';
 import { CreateEmploymentDto, VerifyByEmailDto, ConfirmByCompanyDto } from './employments.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard, RolesGuard, Roles } from '../auth/jwt-auth.guard';
 
 @Controller('employments')
 export class EmploymentsController {
@@ -59,5 +59,25 @@ export class EmploymentsController {
   @Post('verify/company/confirm')
   confirmByCompany(@Body() dto: ConfirmByCompanyDto) {
     return this.employmentsService.confirmByCompany(dto.token);
+  }
+
+  // ─── Panel empresa: ver solicitudes pendientes y verificar ────────────────────
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('company', 'admin')
+  @Get('company/pending')
+  getPendingForCompany(@Req() req) {
+    return this.employmentsService.getPendingForCompany(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('company', 'admin')
+  @Patch(':id/company/verify')
+  verifyByCompanyUser(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('confirm') confirm: boolean,
+    @Req() req,
+  ) {
+    return this.employmentsService.verifyByCompanyUser(req.user.id, id, confirm ?? true);
   }
 }

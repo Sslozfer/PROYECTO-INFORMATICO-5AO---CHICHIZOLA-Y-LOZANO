@@ -50,8 +50,8 @@ export class CompaniesService {
     }
 
     const companies = companyIds !== null
-      ? await this.companyRepo.find({ where: { id: In(companyIds) }, order: { name: 'ASC' } })
-      : await this.companyRepo.find({ order: { name: 'ASC' } });
+      ? await this.companyRepo.find({ where: { id: In(companyIds) }, order: { company_score: 'DESC' } })
+      : await this.companyRepo.find({ order: { company_score: 'DESC' } });
 
     // Enriquecer con job_types
     const allCjts = await this.cjtRepo.find({

@@ -1,4 +1,4 @@
-# Proyecto Borasi — Guía de uso local
+# Proyecto TrustScore — Guía de uso local
 
 ## 1. Levantar la base de datos
 
@@ -7,7 +7,7 @@ docker compose up -d db
 ```
 
 Postgres queda disponible en `localhost:5433` (usuario `postgres`, password
-`postgres`, db `borasi`). El esquema (`database/schema.sql` y
+`postgres`, db `trustscore`). El esquema (`database/schema.sql` y
 `database/migration_v4_hiring.sql`) se carga solo la primera vez que se crea
 el volumen `pgdata`.
 
@@ -72,7 +72,7 @@ Crea (de forma idempotente — se puede correr varias veces):
 - 3 publicaciones de empleo (`/job-posts`).
 
 Todas las cuentas usan la contraseña `password123`:
-`admin@borasi.com`, `rrhh@techcorp.com`, `rrhh@innovalabs.io`,
+`admin@trustscore.com`, `rrhh@techcorp.com`, `rrhh@innovalabs.io`,
 `rrhh@cloudworks.dev`, `juan@example.com`, `lucia@example.com`,
 `pedro@example.com`, `maria@example.com`, `carlos@example.com`.
 
@@ -139,18 +139,3 @@ Todas las cuentas usan la contraseña `password123`:
   matching vía `/matching/jobs/:jobTypeId` y `/matching/posts/:id/candidates`,
   que requieren que el usuario/empresa tenga un perfil de matching configurado
   (no hay UI para eso todavía).
-
-
-## Deploy
-
-Frontend:
-- Vercel
-- Root Directory: frontend
-
-Backend:
-- Railway
-- Root Directory: backend/api
-
-Database:
-- Ejecutar database/schema.sql
-- Ejecutar database/migration_v4_hiring.sql

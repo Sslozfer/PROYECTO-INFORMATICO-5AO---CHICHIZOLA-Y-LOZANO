@@ -26,17 +26,21 @@ import { AdminModule } from './modules/admin/admin.module';
       { name: 'auth',   ttl: 60_000, limit: 10  },
     ]),
 
-	TypeOrmModule.forRootAsync({
-	  imports: [ConfigModule],
-	  inject: [ConfigService],
-	  useFactory: (config: ConfigService) => ({
-	    type: 'postgres',
-	    url: config.get<string>('DATABASE_URL'),
-	    autoLoadEntities: true,
-	    synchronize: false,
-	    ssl: { rejectUnauthorized: false },
-	  }),
-	}),
+    TypeOrmModule.forRootAsync({
+      imports:    [ConfigModule],
+      inject:     [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type:             'postgres',
+        host:             config.get('DB_HOST'),
+        port:             config.get<number>('DB_PORT'),
+        username:         config.get('DB_USERNAME'),
+        password:         config.get('DB_PASSWORD'),
+        database:         config.get('DB_NAME'),
+        autoLoadEntities: true,
+        synchronize:      false,
+        ssl: config.get('DB_SSL') === 'true' ? { rejectUnauthorized: false } : false,
+      }),
+    }),
 
     UsersModule,
     RatingsModule,

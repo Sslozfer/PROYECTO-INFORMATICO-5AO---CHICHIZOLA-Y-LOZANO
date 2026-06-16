@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { RoleGuard } from '@/components/common/RoleGuard';
 import { Card, CardContent } from '@/components/common/Card';
 import { Badge } from '@/components/common/Badge';
 import { Button } from '@/components/common/Button';
@@ -148,6 +147,5 @@ export default function JobsPage() {
         </div>
       </div>
     </MainLayout>
-    </RoleGuard>
   );
 }

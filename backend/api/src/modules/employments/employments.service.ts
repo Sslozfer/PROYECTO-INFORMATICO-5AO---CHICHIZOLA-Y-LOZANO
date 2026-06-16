@@ -130,6 +130,38 @@ export class EmploymentsService {
 
   // ─── Historial de empleos ────────────────────────────────────────────────────
 
+  // ─── Panel de empresa: ver solicitudes pendientes y verificar ───────────────
+
+  async getPendingForCompany(companyUserId: number): Promise<Employment[]> {
+    // Encontrar company_id del usuario empresa
+    const user = await this.employmentRepo.manager
+      .getRepository('User').findOne({ where: { id: companyUserId } }) as any;
+    if (!user?.company_id) return [];
+
+    return this.employmentRepo.find({
+      where: { company_id: user.company_id, company_confirmed: false },
+      order: { created_at: 'DESC' },
+    });
+  }
+
+  async verifyByCompanyUser(companyUserId: number, employmentId: number, confirm: boolean): Promise<Employment> {
+    const user = await this.employmentRepo.manager
+      .getRepository('User').findOne({ where: { id: companyUserId } }) as any;
+    if (!user?.company_id) throw new Error('No tenés empresa asociada');
+
+    const emp = await this.employmentRepo.findOne({
+      where: { id: employmentId, company_id: user.company_id },
+    });
+    if (!emp) throw new Error('Empleo no encontrado o no pertenece a tu empresa');
+
+    emp.company_confirmed  = confirm;
+    emp.verification_level = confirm
+      ? Math.max(emp.verification_level, 2)
+      : emp.verification_level;
+
+    return this.employmentRepo.save(emp) as Promise<Employment>;
+  }
+
   async getByUser(userId: number): Promise<Employment[]> {
     return this.employmentRepo.find({
       where: { user_id: userId },

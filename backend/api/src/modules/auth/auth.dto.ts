@@ -15,6 +15,15 @@ export class RegisterDto {
   @IsOptional()
   @IsIn(['user', 'company'])
   role?: 'user' | 'company';
+
+  // Solo para cuentas company
+  @IsOptional()
+  @IsString()
+  company_name?: string;
+
+  @IsOptional()
+  @IsString()
+  domain?: string;
 }
 
 export class LoginDto {

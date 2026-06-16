@@ -22,6 +22,7 @@ import {
   ClipboardList,
   UserCircle,
   ChevronRight,
+  Shield,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { Avatar } from '@/components/common/Avatar';
@@ -33,12 +34,13 @@ const baseNavItems = [
   { href: '/companies',       label: 'Empresas',          icon: Building2,       roles: ['user', 'company', 'admin'] },
 
   // Solo profesionales: buscar y aplicar a empleos
-  { href: '/jobs',            label: 'Empleos',           icon: Briefcase,       roles: ['user', 'admin'] },
-  { href: '/applications',    label: 'Mis Solicitudes',   icon: FileText,        roles: ['user', 'admin'] },
+  { href: '/jobs',            label: 'Empleos',           icon: Briefcase,       roles: ['user', 'company', 'admin'] },
+  { href: '/applications',    label: 'Mis Solicitudes',   icon: FileText,        roles: ['user', 'company', 'admin'] },
 
   // Solo empresas: publicar búsquedas y ver candidatos
   { href: '/job-posts',       label: 'Mis Publicaciones', icon: Briefcase,       roles: ['company', 'admin'] },
   { href: '/candidates',      label: 'Candidatos',        icon: Users,           roles: ['company', 'admin'] },
+  { href: '/verifications',   label: 'Verificaciones',    icon: Shield,          roles: ['company', 'admin'] },
 
   { href: '/ratings',         label: 'Evaluaciones',      icon: Star,            roles: ['user', 'company', 'admin'] },
   { href: '/my-evaluations',  label: 'Mis Evaluaciones',  icon: ClipboardList,   roles: ['user', 'company', 'admin'] },
@@ -95,7 +97,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
           <Trophy className="w-4 h-4 text-white" />
         </div>
-        <span className="text-lg font-bold text-gray-900">Borasi</span>
+        <span className="text-lg font-bold text-gray-900">TrustScore</span>
       </div>
 
       {/* Nav */}
@@ -154,7 +156,7 @@ export function MainLayout({ children }: MainLayoutProps) {
             <div className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center">
               <Trophy className="w-3 h-3 text-white" />
             </div>
-            <span className="font-bold text-gray-900">Borasi</span>
+            <span className="font-bold text-gray-900">TrustScore</span>
           </div>
         </header>
 

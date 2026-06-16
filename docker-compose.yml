@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: borasi
+      POSTGRES_DB: trustscore
     ports:
       - '5433:5432'
     volumes:
@@ -31,7 +31,7 @@ services:
       DB_PORT: 5432
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
-      DB_NAME: borasi
+      DB_NAME: trustscore
       DB_SSL: 'false'
       JWT_SECRET: algo-largo-aleatorio-aqui-minimo-32-caracteres-de-seguridad
       JWT_REFRESH_SECRET: otro-secreto-diferente-y-largo-para-el-refresh-token

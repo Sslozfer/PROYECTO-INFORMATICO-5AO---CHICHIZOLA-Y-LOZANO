@@ -207,6 +207,23 @@ export interface CreateEmploymentPayload {
   end_date?: string;
 }
 
+export interface Employment {
+  id: number;
+  user_id: number;
+  company_id: number;
+  role: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  verification_level: number;
+  company_confirmed: boolean;
+  created_at: string;
+}
+
 export const employmentsApi = {
-  create: (payload: CreateEmploymentPayload) => apiClient.post('/employments', payload),
+  create:             (payload: CreateEmploymentPayload) => apiClient.post<Employment>('/employments', payload),
+  getMy:              ()                                 => apiClient.get<Employment[]>('/employments/my'),
+  requestCompany:     (id: number)                      => apiClient.post(`/employments/${id}/verify/company/request`),
+  // Empresa
+  getPendingForCo:    ()                                => apiClient.get<Employment[]>('/employments/company/pending'),
+  verifyEmployment:   (id: number, confirm: boolean)    => apiClient.patch(`/employments/${id}/company/verify`, { confirm }),
 };

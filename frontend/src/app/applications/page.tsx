@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { RoleGuard } from '@/components/common/RoleGuard';
 import { Card, CardContent } from '@/components/common/Card';
 import { Badge } from '@/components/common/Badge';
 import { Button } from '@/components/common/Button';
@@ -57,8 +56,7 @@ export default function ApplicationsPage() {
   const accepted = apps.filter(a => a.status === 'accepted' || a.status === 'auto_accepted').length;
 
   return (
-    <RoleGuard allow={['user', 'admin']}>
-      <MainLayout>
+    <MainLayout>
         <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Mis Solicitudes</h1>
@@ -213,6 +211,5 @@ export default function ApplicationsPage() {
           )}
         </div>
       </MainLayout>
-    </RoleGuard>
   );
 }

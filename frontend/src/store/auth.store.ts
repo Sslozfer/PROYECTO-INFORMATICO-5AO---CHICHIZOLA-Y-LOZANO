@@ -6,7 +6,7 @@ import { apiClient } from '@/lib/api-client';
 // El middleware (server-side) necesita leer el estado de auth desde una
 // cookie, ya que no tiene acceso a localStorage. Por eso persistimos el
 // estado de zustand en una cookie en vez del storage por defecto.
-const COOKIE_NAME = 'borasi-auth';
+const COOKIE_NAME = 'trustscore-auth';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 días
 
 const cookieStorage: StateStorage = {
@@ -43,7 +43,7 @@ interface AuthState {
   setAuth: (user: AuthUser, token: string, refreshToken: string) => void;
   clearAuth: () => void;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string, role?: string) => Promise<void>;
+  register: (name: string, email: string, password: string, role?: string, company_name?: string, domain?: string) => Promise<void>;
   refreshAccess: () => Promise<void>;
 }
 
@@ -87,7 +87,7 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      register: async (name, email, password, role = 'user') => {
+      register: async (name, email, password, role = 'user', company_name?: string, domain?: string) => {
         set({ isLoading: true, error: null });
         try {
           const res = await apiClient.post<{ access_token: string; refresh_token: string }>(

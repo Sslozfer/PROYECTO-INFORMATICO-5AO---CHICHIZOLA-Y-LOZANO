@@ -259,9 +259,26 @@ function UserProfile() {
                             {emp.end_date ? new Date(emp.end_date).getFullYear() : 'Presente'}
                           </p>
                         </div>
-                        <Badge variant={emp.verification_level >= 2 ? 'success' : 'warning'}>
-                          {emp.verification_level >= 2 ? '✓ Verificado' : '⏳ Pendiente'}
-                        </Badge>
+                        <div className="flex flex-col items-end gap-1">
+                            <Badge variant={emp.verification_level >= 2 ? 'success' : 'warning'}>
+                              {emp.verification_level >= 2 ? '✓ Verificado' : '⏳ Pendiente'}
+                            </Badge>
+                            {emp.verification_level < 2 && (
+                              <button
+                                className="text-xs text-blue-600 hover:underline"
+                                onClick={async () => {
+                                  try {
+                                    await employmentsApi.requestCompany(emp.id);
+                                    alert('Solicitud enviada a la empresa.');
+                                  } catch (e: unknown) {
+                                    alert(e instanceof Error ? e.message : 'Error');
+                                  }
+                                }}
+                              >
+                                Solicitar verificación
+                              </button>
+                            )}
+                          </div>
                       </div>
                     </div>
                   ))}

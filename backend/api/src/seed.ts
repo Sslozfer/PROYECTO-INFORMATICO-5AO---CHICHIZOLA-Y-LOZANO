@@ -36,23 +36,31 @@ loadEnv();
 const PASSWORD = 'password123';
 
 async function main() {
-  const client = new Client({
-    host:     process.env.DB_HOST     || 'localhost',
-    port:     Number(process.env.DB_PORT || 5433),
-    user:     process.env.DB_USERNAME || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
-    database: process.env.DB_NAME     || 'borasi',
-  });
-  await client.connect();
-  console.log('Conectado a la base de datos.');
+  casync function main() {
+    const client = new Client({
+      connectionString:
+        process.env.DATABASE_PUBLIC_URL ||
+        process.env.DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: false,
+      },
+    });
+  
+    await client.connect();
+    console.log('Conectado a la base de datos.');
 
   const passwordHash = await bcrypt.hash(PASSWORD, 10);
 
   // ─── 1. JOB TYPES (rubros) ────────────────────────────────────────────────
   const jobTypes = [
-    { name: 'Desarrollo de Software', description: 'Roles de programación, backend, frontend y fullstack' },
-    { name: 'Marketing Digital',      description: 'Roles de marketing, contenido y análisis de campañas' },
-    { name: 'Diseño UX/UI',           description: 'Roles de diseño de producto, interfaces y experiencia de usuario' },
+    { name: 'Desarrollo de Software',  description: 'Roles de programación, backend, frontend y fullstack' },
+    { name: 'Marketing Digital',       description: 'Roles de marketing, contenido y análisis de campañas' },
+    { name: 'Diseño UX/UI',            description: 'Roles de diseño de producto, interfaces y experiencia de usuario' },
+    { name: 'Data & Analytics',        description: 'Ciencia de datos, BI, machine learning y analytics' },
+    { name: 'Recursos Humanos',        description: 'Reclutamiento, capacitación y desarrollo organizacional' },
+    { name: 'Ventas y Negocios',       description: 'Ventas consultivas, account management y desarrollo de negocios' },
+    { name: 'Finanzas y Contabilidad', description: 'Finanzas corporativas, contabilidad y tesorería' },
+    { name: 'Operaciones y Logística', description: 'Supply chain, operaciones y logística empresarial' },
   ];
   const jobTypeIds: Record<string, number> = {};
   for (const jt of jobTypes) {
@@ -74,18 +82,44 @@ async function main() {
   // evaluar esa subárea. category_weight => peso en el promedio del score global.
   const categories = [
     // Desarrollo de Software
-    { job_type: 'Desarrollo de Software', name: 'Calidad de Código',       description: 'Buenas prácticas, legibilidad y mantenibilidad del código', employer_weight: 1,   peer_weight: 1,   client_weight: 0,   category_weight: 1.2 },
-    { job_type: 'Desarrollo de Software', name: 'Comunicación',            description: 'Claridad para reportar avances y bloqueos',                   employer_weight: 1,   peer_weight: 1,   client_weight: 1,   category_weight: 1.0 },
-    { job_type: 'Desarrollo de Software', name: 'Cumplimiento de Plazos',  description: 'Entrega en los tiempos acordados',                            employer_weight: 1,   peer_weight: 0.5, client_weight: 1,   category_weight: 1.0 },
-    { job_type: 'Desarrollo de Software', name: 'Liderazgo Técnico',       description: 'Mentoría y toma de decisiones técnicas',                       employer_weight: 1,   peer_weight: 1,   client_weight: 0,   category_weight: 0.8 },
+    { job_type: 'Desarrollo de Software',  name: 'Calidad de Código',         description: 'Buenas prácticas, legibilidad y mantenibilidad del código',   employer_weight: 1, peer_weight: 1,   client_weight: 0,   category_weight: 1.2 },
+    { job_type: 'Desarrollo de Software',  name: 'Comunicación Técnica',      description: 'Claridad para reportar avances, bloqueos y decisiones',        employer_weight: 1, peer_weight: 1,   client_weight: 1,   category_weight: 1.0 },
+    { job_type: 'Desarrollo de Software',  name: 'Cumplimiento de Plazos',    description: 'Entrega en los tiempos acordados',                             employer_weight: 1, peer_weight: 0.5, client_weight: 1,   category_weight: 1.0 },
+    { job_type: 'Desarrollo de Software',  name: 'Liderazgo Técnico',         description: 'Mentoría y toma de decisiones técnicas',                       employer_weight: 1, peer_weight: 1,   client_weight: 0,   category_weight: 0.8 },
+    { job_type: 'Desarrollo de Software',  name: 'Resolución de Problemas',   description: 'Capacidad de identificar y resolver bugs y problemas complejos', employer_weight: 1, peer_weight: 1,   client_weight: 0,   category_weight: 1.1 },
+    { job_type: 'Desarrollo de Software',  name: 'Trabajo en Equipo',         description: 'Colaboración, code reviews y pair programming',                employer_weight: 1, peer_weight: 1,   client_weight: 0,   category_weight: 0.9 },
     // Marketing Digital
-    { job_type: 'Marketing Digital',      name: 'Creatividad',             description: 'Generación de ideas y contenido original',                     employer_weight: 1,   peer_weight: 1,   client_weight: 1,   category_weight: 1.0 },
-    { job_type: 'Marketing Digital',      name: 'Análisis de Datos',       description: 'Interpretación de métricas y KPIs',                            employer_weight: 1,   peer_weight: 0.5, client_weight: 0,   category_weight: 1.0 },
-    { job_type: 'Marketing Digital',      name: 'Gestión de Campañas',     description: 'Planificación y ejecución de campañas',                        employer_weight: 1,   peer_weight: 0.5, client_weight: 1,   category_weight: 1.1 },
+    { job_type: 'Marketing Digital',       name: 'Creatividad',               description: 'Generación de ideas y contenido original',                     employer_weight: 1, peer_weight: 1,   client_weight: 1,   category_weight: 1.0 },
+    { job_type: 'Marketing Digital',       name: 'Análisis de Datos',         description: 'Interpretación de métricas y KPIs',                            employer_weight: 1, peer_weight: 0.5, client_weight: 0,   category_weight: 1.0 },
+    { job_type: 'Marketing Digital',       name: 'Gestión de Campañas',       description: 'Planificación y ejecución de campañas',                        employer_weight: 1, peer_weight: 0.5, client_weight: 1,   category_weight: 1.1 },
+    { job_type: 'Marketing Digital',       name: 'SEO/SEM',                   description: 'Optimización para motores de búsqueda y campañas pagas',       employer_weight: 1, peer_weight: 0.5, client_weight: 0,   category_weight: 1.0 },
+    { job_type: 'Marketing Digital',       name: 'Redes Sociales',            description: 'Gestión de comunidades y contenido en redes',                   employer_weight: 1, peer_weight: 0.5, client_weight: 1,   category_weight: 0.9 },
     // Diseño UX/UI
-    { job_type: 'Diseño UX/UI',           name: 'Diseño Visual',           description: 'Estética, consistencia y sistema de diseño',                   employer_weight: 1,   peer_weight: 1,   client_weight: 1,   category_weight: 1.1 },
-    { job_type: 'Diseño UX/UI',           name: 'Usabilidad',              description: 'Facilidad de uso e investigación de usuarios',                 employer_weight: 1,   peer_weight: 1,   client_weight: 1,   category_weight: 1.0 },
-    { job_type: 'Diseño UX/UI',           name: 'Prototipado',             description: 'Velocidad y calidad de prototipos',                            employer_weight: 1,   peer_weight: 0.5, client_weight: 0,   category_weight: 0.9 },
+    { job_type: 'Diseño UX/UI',            name: 'Diseño Visual',             description: 'Estética, consistencia y sistema de diseño',                   employer_weight: 1, peer_weight: 1,   client_weight: 1,   category_weight: 1.1 },
+    { job_type: 'Diseño UX/UI',            name: 'Usabilidad',                description: 'Facilidad de uso e investigación de usuarios',                 employer_weight: 1, peer_weight: 1,   client_weight: 1,   category_weight: 1.0 },
+    { job_type: 'Diseño UX/UI',            name: 'Prototipado',               description: 'Velocidad y calidad de prototipos',                            employer_weight: 1, peer_weight: 0.5, client_weight: 0,   category_weight: 0.9 },
+    { job_type: 'Diseño UX/UI',            name: 'Investigación de Usuarios',  description: 'Entrevistas, tests de usabilidad y análisis',                  employer_weight: 1, peer_weight: 1,   client_weight: 0,   category_weight: 1.0 },
+    // Data & Analytics
+    { job_type: 'Data & Analytics',        name: 'Modelado de Datos',         description: 'Diseño y optimización de modelos de datos',                    employer_weight: 1, peer_weight: 1,   client_weight: 0,   category_weight: 1.2 },
+    { job_type: 'Data & Analytics',        name: 'SQL y Bases de Datos',      description: 'Consultas complejas, optimización y administración',           employer_weight: 1, peer_weight: 1,   client_weight: 0,   category_weight: 1.1 },
+    { job_type: 'Data & Analytics',        name: 'Visualización de Datos',    description: 'Dashboards, reportes y storytelling con datos',                employer_weight: 1, peer_weight: 0.5, client_weight: 1,   category_weight: 0.9 },
+    // Recursos Humanos
+    { job_type: 'Data & Analytics',        name: 'Machine Learning',          description: 'Desarrollo y evaluación de modelos de ML',                     employer_weight: 1, peer_weight: 0.5, client_weight: 0,   category_weight: 1.0 },
+    { job_type: 'Recursos Humanos',        name: 'Reclutamiento',             description: 'Atracción, evaluación y selección de talento',                 employer_weight: 1, peer_weight: 0.5, client_weight: 0,   category_weight: 1.1 },
+    { job_type: 'Recursos Humanos',        name: 'Gestión de Personas',       description: 'Liderazgo, motivación y desarrollo de equipos',                employer_weight: 1, peer_weight: 1,   client_weight: 0,   category_weight: 1.0 },
+    { job_type: 'Recursos Humanos',        name: 'Capacitación',              description: 'Diseño y facilitación de programas de formación',              employer_weight: 1, peer_weight: 0.5, client_weight: 0.5, category_weight: 0.9 },
+    // Ventas y Negocios
+    { job_type: 'Ventas y Negocios',       name: 'Cierre de Ventas',          description: 'Capacidad para cerrar deals y superar cuotas',                 employer_weight: 1, peer_weight: 0.5, client_weight: 1,   category_weight: 1.2 },
+    { job_type: 'Ventas y Negocios',       name: 'Relación con Clientes',     description: 'Construcción y mantenimiento de relaciones comerciales',        employer_weight: 1, peer_weight: 0.5, client_weight: 1,   category_weight: 1.1 },
+    { job_type: 'Ventas y Negocios',       name: 'Negociación',               description: 'Habilidad negociadora en propuestas y contratos',              employer_weight: 1, peer_weight: 0.5, client_weight: 1,   category_weight: 1.0 },
+    // Finanzas y Contabilidad
+    { job_type: 'Finanzas y Contabilidad', name: 'Análisis Financiero',       description: 'Lectura e interpretación de estados financieros',              employer_weight: 1, peer_weight: 0.5, client_weight: 0,   category_weight: 1.2 },
+    { job_type: 'Finanzas y Contabilidad', name: 'Control Presupuestario',    description: 'Seguimiento y control del presupuesto',                        employer_weight: 1, peer_weight: 0.5, client_weight: 0,   category_weight: 1.0 },
+    { job_type: 'Finanzas y Contabilidad', name: 'Cumplimiento Normativo',    description: 'Conocimiento de regulaciones fiscales y contables',            employer_weight: 1, peer_weight: 0.5, client_weight: 0,   category_weight: 1.0 },
+    // Operaciones y Logística
+    { job_type: 'Operaciones y Logística', name: 'Gestión de Inventario',     description: 'Control y optimización de stocks',                             employer_weight: 1, peer_weight: 0.5, client_weight: 0,   category_weight: 1.0 },
+    { job_type: 'Operaciones y Logística', name: 'Mejora de Procesos',        description: 'Lean, Six Sigma y optimización operativa',                     employer_weight: 1, peer_weight: 1,   client_weight: 0,   category_weight: 1.1 },
+    { job_type: 'Operaciones y Logística', name: 'Gestión de Proveedores',    description: 'Negociación y relación con proveedores',                       employer_weight: 1, peer_weight: 0,   client_weight: 1,   category_weight: 0.9 },
   ];
   const categoryIds: Record<string, number> = {};
   for (const cat of categories) {
@@ -154,16 +188,16 @@ async function main() {
 
   // Admin
   {
-    const existing = await client.query('SELECT id FROM users WHERE email = $1', ['admin@borasi.com']);
+    const existing = await client.query('SELECT id FROM users WHERE email = $1', ['admin@trustscore.com']);
     if (existing.rows.length === 0) {
       const res = await client.query(
         `INSERT INTO users (name, email, password_hash, role, identity_verified)
-         VALUES ('Admin Borasi', 'admin@borasi.com', $1, 'admin', true) RETURNING id`,
+         VALUES ('Admin TrustScore', 'admin@trustscore.com', $1, 'admin', true) RETURNING id`,
         [passwordHash],
       );
-      userIds['admin@borasi.com'] = res.rows[0].id;
+      userIds['admin@trustscore.com'] = res.rows[0].id;
     } else {
-      userIds['admin@borasi.com'] = existing.rows[0].id;
+      userIds['admin@trustscore.com'] = existing.rows[0].id;
     }
   }
 
@@ -339,9 +373,9 @@ async function main() {
 
   // ─── 9. COMPANY JOB TYPES (áreas de cada empresa) ─────────────────────────
   const companyJobTypeMap = [
-    { company: 'TechCorp',    job_types: ['Desarrollo de Software'] },
-    { company: 'InnovaLabs',  job_types: ['Desarrollo de Software', 'Marketing Digital'] },
-    { company: 'CloudWorks',  job_types: ['Diseño UX/UI', 'Desarrollo de Software'] },
+    { company: 'TechCorp',    job_types: ['Desarrollo de Software', 'Data & Analytics'] },
+    { company: 'InnovaLabs',  job_types: ['Desarrollo de Software', 'Marketing Digital', 'Diseño UX/UI'] },
+    { company: 'CloudWorks',  job_types: ['Diseño UX/UI', 'Desarrollo de Software', 'Operaciones y Logística'] },
   ];
   for (const entry of companyJobTypeMap) {
     const coId = companyIds[entry.company];
@@ -383,7 +417,7 @@ async function main() {
   console.log('\n✅ Seed completado.');
   console.log(`   Todas las cuentas usan la contraseña: ${PASSWORD}`);
   console.log('   Cuentas de ejemplo:');
-  console.log('     - admin@borasi.com        (admin)');
+  console.log('     - admin@trustscore.com        (admin)');
   console.log('     - rrhh@techcorp.com       (company)');
   console.log('     - rrhh@innovalabs.io      (company)');
   console.log('     - rrhh@cloudworks.dev     (company)');

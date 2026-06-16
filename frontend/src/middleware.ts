@@ -8,7 +8,7 @@ export function middleware(request: NextRequest) {
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
   // Read token from Zustand persisted storage cookie
-  const authStorage = request.cookies.get('borasi-auth')?.value;
+  const authStorage = request.cookies.get('trustscore-auth')?.value;
   let isAuthenticated = false;
 
   if (authStorage) {
