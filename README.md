@@ -1,141 +1,227 @@
-# Proyecto TrustScore — Guía de uso local
+# Trustscore
 
-## 1. Levantar la base de datos
+## Descripción
 
-```bash
-docker compose up -d db
-```
+Trustscore es una plataforma orientada al ámbito laboral que busca facilitar la conexión entre profesionales y empresas mediante un sistema de reputación verificable, evaluaciones y herramientas de análisis. La aplicación centraliza información relevante sobre candidatos, organizaciones y procesos de contratación para ofrecer una experiencia más transparente y basada en datos.
 
-Postgres queda disponible en `localhost:5433` (usuario `postgres`, password
-`postgres`, db `trustscore`). El esquema (`database/schema.sql` y
-`database/migration_v4_hiring.sql`) se carga solo la primera vez que se crea
-el volumen `pgdata`.
-
-> Si ya levantaste el proyecto antes y cambiaste el SQL, hay que recrear el
-> volumen: `docker compose down -v && docker compose up -d db`
-
-## 2. Backend (NestJS)
-
-```bash
-cd backend/api
-npm install
-npm run start:dev
-```
-
-- Corre en `http://localhost:3000`.
-- Usa el `.env` ya incluido (`DB_PORT=5433`, apunta a la db del paso 1).
-
-### Error "ECONNREFUSED ::1:5433 / 127.0.0.1:5433"
-Significa que el backend está corriendo pero **la base de datos no está
-levantada**. Solución: correr el paso 1 (`docker compose up -d db`) y
-verificar que el contenedor esté `healthy`:
-
-```bash
-docker compose ps
-```
-
-## 3. Frontend (Next.js)
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-- Corre en `http://localhost:3001` (puerto fijado en `package.json` para no
-  chocar con el backend, que usa el 3000).
-- Usa `.env.local` ya incluido (`NEXT_PUBLIC_API_URL=http://localhost:3000`).
-
-## 4. Crear un usuario y loguearse
-
-1. Ir a `http://localhost:3001/register`, crear una cuenta (`Profesional` o
-   `Empresa`).
-2. Iniciar sesión en `/login`.
-
-### Datos de ejemplo (seed)
-
-Para tener datos reales con los que probar (rubros, subáreas con pesos,
-empresas, trabajadores, scores y publicaciones):
-
-```bash
-cd backend/api
-npm run seed
-```
-
-Crea (de forma idempotente — se puede correr varias veces):
-- 3 rubros: Desarrollo de Software, Marketing Digital, Diseño UX/UI.
-- Subáreas/skills por rubro con pesos `employer/peer/client` distintos.
-- 3 empresas (TechCorp, InnovaLabs, CloudWorks) con sus cuentas `company`.
-- 5 trabajadores con empleos, ratings y `performance_score` calculado como
-  promedio ponderado de sus subáreas.
-- Perfiles de búsqueda activos (para `/professionals` con filtro por rubro).
-- 3 publicaciones de empleo (`/job-posts`).
-
-Todas las cuentas usan la contraseña `password123`:
-`admin@trustscore.com`, `rrhh@techcorp.com`, `rrhh@innovalabs.io`,
-`rrhh@cloudworks.dev`, `juan@example.com`, `lucia@example.com`,
-`pedro@example.com`, `maria@example.com`, `carlos@example.com`.
+La plataforma permite a los distintos actores del ecosistema laboral interactuar dentro de un mismo entorno, proporcionando funcionalidades para la gestión de perfiles profesionales, publicaciones de empleo, evaluaciones y rankings.
 
 ---
 
-## Separación de cuentas Usuario vs Empresa
+## Objetivos del proyecto
 
-- **Usuario (`role: user`)**: puede aplicar a empleos (`/jobs`), ver y
-  retirar sus solicitudes (`/applications`), evaluar a otros en subáreas
-  específicas (`/my-evaluations`). No puede crear publicaciones ni ver
-  candidatos.
-- **Empresa (`role: company`)**: gestiona sus búsquedas y candidatos en
-  `/job-posts` (crear publicación, ver candidatos, aceptar/rechazar) y
-  `/candidates`. No puede aplicar a empleos ni ver `/applications`/`/jobs`.
-- Estas restricciones están aplicadas tanto en el menú lateral como en el
-  backend (`@Roles(...)` en `hiring.controller.ts` y `matching.controller.ts`).
-- El "Score de Confianza" (`global_trust_score`) ya no se expone a usuarios
-  ni empresas: es un valor interno de cálculo, solo visible para `admin`
-  (`GET /users/:id/admin-view`).
-- Las evaluaciones ahora son por **subárea** (no hay "evaluar a la persona en
-  general"): se elige rubro → subárea, y solo se muestran las subáreas que
-  esa relación (empleador/par/cliente) puede evaluar según
-  `employer_weight`/`peer_weight`/`client_weight`. El score global de cada
-  persona es el promedio ponderado de sus subáreas (`category_weight`).
+- Centralizar la información relacionada con perfiles profesionales y empresas.
+- Facilitar procesos de búsqueda y selección de talento.
+- Permitir la evaluación y valoración de profesionales.
+- Generar rankings e indicadores basados en la información disponible.
+- Brindar herramientas de análisis que ayuden en la toma de decisiones.
+- Incorporar mecanismos inteligentes de recomendación y matching.
 
+---
 
-## Funcionalidades completadas en esta vuelta
+## Funcionalidades principales
 
-- **Búsqueda**: las barras de búsqueda de `search`, `professionals`,
-  `companies`, `jobs` y `candidates` ahora filtran en vivo.
-- **Profesionales** (`/professionals`): lista real desde
-  `GET /users/ranking`. "Ver Perfil" abre `/professionals/[id]` (nuevo),
-  con datos reales de `GET /users/:id`.
-- **Empresas** (`/companies`): lista real desde `GET /companies`. "Ver
-  Empresa" abre `/companies/[id]` (nuevo), con datos reales de
-  `GET /companies/:id`. Se corrigió el tipo `Company` en el frontend, que
-  no coincidía con las columnas reales de la entidad backend.
-- **Mis Solicitudes** (`/applications`): conectado a
-  `GET /hiring/my-applications`. "Cancelar" llama a
-  `PATCH /hiring/applications/:id/withdraw`. "Ver Detalles" expande info de
-  la solicitud (compatibilidad, motivo de rechazo, etc).
-- **Empleos** (`/jobs`): el botón "Aplicar" llama a
-  `POST /hiring/apply/:jobPostId`.
-- **Evaluaciones** (`/ratings`): "Nueva Evaluación" lleva a
-  `/my-evaluations`.
-- **Mis Evaluaciones** (`/my-evaluations`): pestañas "Recibidas" y "Dadas"
-  ahora muestran datos reales. Se agregaron al backend los endpoints
-  `GET /ratings/received` y `GET /ratings/given` (no existían).
-- Se agregó el endpoint `GET /categories` (faltaba — el modal de "Nueva
-  Evaluación" lo llamaba y daba 404).
-- **Mi Perfil** (`/profile`): "Editar" lleva a `/settings`. "+ Agregar
-  Experiencia" abre un modal real conectado a `POST /employments`.
-- **Configuración** (`/settings`): "Guardar Cambios" ahora funciona contra
-  el nuevo endpoint `PATCH /users/me` (no existía, se agregó).
-- Se arregló el botón de menú móvil (`MainLayout`): el ícono X nunca cerraba
-  el sidebar porque siempre hacía `setSidebarOpen(true)`.
+### Gestión de usuarios y autenticación
 
-## Pendiente (requiere más trabajo de backend, fuera de alcance acá)
+- Registro e inicio de sesión.
+- Control de acceso según roles.
+- Gestión de perfiles personales.
+- Configuración de la cuenta.
 
-- "Guardar" en Privacidad y "Verificar" identidad (Configuración): no hay
-  columnas/endpoints para preferencias de privacidad ni flujo de KYC.
-- `candidates` (búsqueda de candidatos para empresas) y la lista completa de
-  `jobs`/`mockJobs` siguen usando datos mock: el backend solo expone
-  matching vía `/matching/jobs/:jobTypeId` y `/matching/posts/:id/candidates`,
-  que requieren que el usuario/empresa tenga un perfil de matching configurado
-  (no hay UI para eso todavía).
+### Perfiles profesionales
+
+- Visualización de perfiles.
+- Consulta detallada de información profesional.
+- Exploración del directorio de candidatos.
+- Seguimiento de evaluaciones recibidas.
+
+### Empresas
+
+- Directorio de empresas.
+- Consulta de perfiles empresariales.
+- Visualización de información relevante de cada organización.
+
+### Publicaciones laborales
+
+- Gestión y visualización de ofertas laborales.
+- Exploración de oportunidades disponibles.
+- Relación entre candidatos y puestos de trabajo.
+
+### Aplicaciones y procesos de selección
+
+- Gestión de postulaciones.
+- Seguimiento del estado de las aplicaciones.
+- Administración del proceso de contratación.
+
+### Evaluaciones y reputación
+
+- Sistema de valoraciones.
+- Consulta de evaluaciones.
+- Construcción de reputación profesional verificable.
+- Registro histórico de resultados.
+
+### Rankings
+
+- Rankings de profesionales.
+- Rankings de empresas.
+- Rankings basados en habilidades.
+- Comparación mediante indicadores relevantes.
+
+### Búsqueda avanzada
+
+- Exploración del contenido de la plataforma.
+- Localización de profesionales y organizaciones.
+- Navegación eficiente entre resultados.
+
+### Analítica e insights
+
+- Visualización de métricas.
+- Indicadores para apoyar la toma de decisiones.
+- Generación de información estratégica sobre el ecosistema laboral.
+
+### Matching inteligente
+
+- Relación entre perfiles profesionales y oportunidades laborales.
+- Evaluación de compatibilidad entre candidatos y puestos.
+- Recomendaciones basadas en características y criterios definidos.
+
+### Funcionalidades asistidas por inteligencia artificial
+
+- Servicios de apoyo basados en IA.
+- Procesamiento y análisis de información para complementar la experiencia de usuario.
+
+---
+
+## Arquitectura del sistema
+
+El proyecto está organizado bajo una arquitectura dividida en tres componentes principales:
+
+### Frontend
+
+Aplicación web desarrollada con tecnologías modernas orientadas a la creación de interfaces dinámicas y responsivas.
+
+Responsabilidades principales:
+
+- Interfaz de usuario.
+- Navegación entre módulos.
+- Gestión del estado de autenticación.
+- Consumo de servicios del backend.
+- Presentación de información y métricas.
+
+### Backend
+
+API encargada de centralizar la lógica de negocio de la plataforma.
+
+Responsabilidades principales:
+
+- Gestión de usuarios.
+- Control de autenticación y autorización.
+- Administración de evaluaciones.
+- Procesos de matching.
+- Servicios de inteligencia artificial.
+- Gestión de postulaciones y contrataciones.
+- Exposición de endpoints para el frontend.
+
+### Base de datos
+
+Componente encargado del almacenamiento persistente de la información.
+
+Responsabilidades principales:
+
+- Gestión de perfiles profesionales.
+- Información empresarial.
+- Evaluaciones y reputación.
+- Publicaciones laborales.
+- Postulaciones.
+- Resultados de procesos de matching.
+- Datos utilizados para análisis y rankings.
+
+---
+
+## Estructura general del proyecto
+
+```text
+database/
+├── scripts y definición del esquema de datos
+
+backend/
+└── API y lógica de negocio
+
+frontend/
+└── aplicación web e interfaz de usuario
+```
+
+---
+
+## Módulos destacados
+
+### Profesionales
+
+Permite explorar, consultar y gestionar la información relacionada con candidatos y perfiles laborales.
+
+### Empresas
+
+Facilita la visualización y consulta de organizaciones participantes en la plataforma.
+
+### Empleos
+
+Agrupa las funcionalidades vinculadas a ofertas laborales y oportunidades de trabajo.
+
+### Evaluaciones
+
+Gestiona el sistema de reputación y valoración profesional.
+
+### Rankings
+
+Presenta clasificaciones e indicadores generados a partir de la información registrada.
+
+### Aplicaciones
+
+Administra las postulaciones realizadas y su seguimiento.
+
+### Matching
+
+Analiza la compatibilidad entre candidatos y posiciones disponibles.
+
+### Inteligencia Artificial
+
+Complementa la experiencia mediante servicios automatizados de análisis y asistencia.
+
+---
+
+## Casos de uso principales
+
+### Para profesionales
+
+- Crear y administrar su perfil.
+- Explorar oportunidades laborales.
+- Consultar evaluaciones y reputación.
+- Revisar rankings e indicadores.
+- Gestionar sus postulaciones.
+
+### Para empresas
+
+- Consultar candidatos.
+- Publicar oportunidades laborales.
+- Analizar perfiles compatibles.
+- Evaluar profesionales.
+- Obtener información estratégica para la contratación.
+
+---
+
+## Características del proyecto
+
+- Arquitectura modular.
+- Separación clara entre frontend, backend y base de datos.
+- Sistema basado en roles.
+- Reputación profesional verificable.
+- Herramientas de análisis y métricas.
+- Funcionalidades de matching inteligente.
+- Integración de servicios asistidos por inteligencia artificial.
+- Escalabilidad para incorporar nuevas funcionalidades.
+
+---
+
+## Conclusión
+
+Trustscore propone una plataforma integral para la gestión de relaciones laborales, combinando perfiles profesionales, reputación verificable, análisis de datos y herramientas inteligentes para mejorar los procesos de búsqueda, evaluación y contratación de talento dentro de un entorno unificado.
