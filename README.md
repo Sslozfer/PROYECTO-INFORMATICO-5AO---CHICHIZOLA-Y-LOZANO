@@ -222,6 +222,39 @@ Complementa la experiencia mediante servicios automatizados de análisis y asist
 
 ---
 
+
+## Usuarios de ejemplo
+
+**Contraseña para todas las cuentas:**
+
+```txt
+password123
+```
+
+### Administrador
+
+| Rol   | Email                                               |
+| ----- | --------------------------------------------------- |
+| Admin | [admin@trustscore.com](mailto:admin@trustscore.com) |
+
+### Empresas
+
+| Empresa    | Rol     | Email                                             |
+| ---------- | ------- | ------------------------------------------------- |
+| TechCorp   | Company | [rrhh@techcorp.com](mailto:rrhh@techcorp.com)     |
+| InnovaLabs | Company | [rrhh@innovalabs.io](mailto:rrhh@innovalabs.io)   |
+| CloudWorks | Company | [rrhh@cloudworks.dev](mailto:rrhh@cloudworks.dev) |
+
+### Trabajadores
+
+| Nombre           | Rol  | Email                                           |
+| ---------------- | ---- | ----------------------------------------------- |
+| Juan García      | User | [juan@example.com](mailto:juan@example.com)     |
+| Lucía Fernández  | User | [lucia@example.com](mailto:lucia@example.com)   |
+| Pedro Sánchez    | User | [pedro@example.com](mailto:pedro@example.com)   |
+| María López      | User | [maria@example.com](mailto:maria@example.com)   |
+| Carlos Rodríguez | User | [carlos@example.com](mailto:carlos@example.com) |
+
 ## Conclusión
 
 Trustscore propone una plataforma integral para la gestión de relaciones laborales, combinando perfiles profesionales, reputación verificable, análisis de datos y herramientas inteligentes para mejorar los procesos de búsqueda, evaluación y contratación de talento dentro de un entorno unificado.
