@@ -169,7 +169,7 @@ describe('RatingsService', () => {
         .mockResolvedValueOnce(mockUser())
         .mockResolvedValueOnce(mockUser({ id: 2 }));
       mockCategoryRepo.findOne.mockResolvedValue(mockCategory());
-      mockRatingRepo.count.mockResolvedValue(20); // límite alcanzado
+      mockRatingRepo.count.mockResolvedValue(30); // límite alcanzado (RATE_LIMIT_PER_HOUR_USER = 30)
 
       await expect(
         service.create({

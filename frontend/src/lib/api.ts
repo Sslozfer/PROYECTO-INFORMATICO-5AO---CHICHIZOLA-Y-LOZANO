@@ -199,6 +199,33 @@ export const matchingApi = {
   upsertProfile: (data: Record<string, unknown>) => apiClient.put('/matching/profile', data),
 };
 
+// ─── Admin / Fraude ─────────────────────────────────────────────────────────
+export interface FraudSummaryEntry { user_id: number; total_flags: string; total_severity: string }
+export interface FraudDetailedEntry { user_id: number; type: string; count: string; severity_sum: string; sample_notes: string | null }
+export interface FraudByTypeEntry { type: string; total: string; severity_sum: string; severity_avg: string }
+export interface SuspiciousPairEntry { user1: number; user2: number; flag_count: string; severity_sum: string }
+export interface FraudClustersResult { count: number; clusters: number[][] }
+export interface HighRiskUserEntry { user_id: number; name: string; fraud_score: number; is_blocked: boolean }
+export interface LowReliabilityVoterEntry { user_id: number; name: string; reliability: number; total_votes: number }
+export interface SourceBiasEntry {
+  user_id: number; category: string; global_score: number;
+  employer_avg: string | null; peer_avg: string | null; client_avg: string | null;
+}
+export interface BlockedUserEntry { id: number; name: string; email: string; fraud_score: number }
+
+export const adminApi = {
+  getFraudSummary:        () => apiClient.get<FraudSummaryEntry[]>('/admin/fraud/summary'),
+  getFraudDetailed:       () => apiClient.get<FraudDetailedEntry[]>('/admin/fraud/detailed'),
+  getFraudByType:         () => apiClient.get<FraudByTypeEntry[]>('/admin/fraud/by-type'),
+  getSuspiciousPairs:     () => apiClient.get<SuspiciousPairEntry[]>('/admin/fraud/pairs'),
+  getFraudClusters:       () => apiClient.get<FraudClustersResult>('/admin/fraud/clusters'),
+  getHighRiskUsers:       (minRisk?: number) => apiClient.get<HighRiskUserEntry[]>('/admin/fraud/high-risk', { params: minRisk !== undefined ? { minRisk } : undefined }),
+  getLowReliabilityVoters:(max?: number)     => apiClient.get<LowReliabilityVoterEntry[]>('/admin/reliability/low', { params: max !== undefined ? { max } : undefined }),
+  getSourceBiasReport:    (minDivergence?: number) => apiClient.get<SourceBiasEntry[]>('/admin/bias/report', { params: minDivergence !== undefined ? { minDivergence } : undefined }),
+  getBlockedUsers:        () => apiClient.get<BlockedUserEntry[]>('/admin/users/blocked'),
+  unblockUser:            (id: number) => apiClient.patch(`/admin/users/${id}/unblock`),
+};
+
 // ─── Employments ──────────────────────────────────────────────────────────────
 export interface CreateEmploymentPayload {
   company_id: number;

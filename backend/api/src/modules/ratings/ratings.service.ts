@@ -84,13 +84,16 @@ export class RatingsService {
 
     // ─── Cooldown ────────────────────────────────────────────────────────────
 
+    // Cooldown por SUBÁREA (no por par de usuarios): así un mismo emisor puede
+    // evaluar varias categorías de un mismo usuario en la misma sesión sin que
+    // el límite de la primera categoría bloquee a las siguientes.
     const lastRating = await this.ratingRepo.findOne({
-      where: { from_user_id, to_user_id },
+      where: { from_user_id, to_user_id, evaluation_category_id },
       order: { created_at: 'DESC' },
     });
     const cooldownMs = fromUser.role === 'company' ? COOLDOWN_MS_COMPANY : COOLDOWN_MS_USER;
     if (lastRating && Date.now() - new Date(lastRating.created_at).getTime() < cooldownMs)
-      throw new BadRequestException('Cooldown activo para este usuario');
+      throw new BadRequestException('Cooldown activo para esta subárea con este usuario');
 
     // ─── Relación verificada ─────────────────────────────────────────────────
 

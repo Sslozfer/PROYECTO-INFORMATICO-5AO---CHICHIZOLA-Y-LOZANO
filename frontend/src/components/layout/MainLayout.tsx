@@ -23,6 +23,7 @@ import {
   UserCircle,
   ChevronRight,
   Shield,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { Avatar } from '@/components/common/Avatar';
@@ -41,6 +42,8 @@ const baseNavItems = [
   { href: '/job-posts',       label: 'Mis Publicaciones', icon: Briefcase,       roles: ['company', 'admin'] },
   { href: '/candidates',      label: 'Candidatos',        icon: Users,           roles: ['company', 'admin'] },
   { href: '/verifications',   label: 'Verificaciones',    icon: Shield,          roles: ['company', 'admin'] },
+
+  { href: '/admin',           label: 'Panel Admin',       icon: AlertTriangle,   roles: ['admin'] },
 
   { href: '/ratings',         label: 'Evaluaciones',      icon: Star,            roles: ['user', 'company', 'admin'] },
   { href: '/my-evaluations',  label: 'Mis Evaluaciones',  icon: ClipboardList,   roles: ['user', 'company', 'admin'] },
