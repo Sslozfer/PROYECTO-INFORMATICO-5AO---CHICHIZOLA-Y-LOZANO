@@ -28,10 +28,14 @@ export default function JobPostsPage() {
   const [jobTypes, setJobTypes] = useState<JobType[]>([]);
 
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState<CreateJobPostPayload>({
+  const emptyForm: CreateJobPostPayload = {
     job_type_id: 0, title: '', description: '', salary_min: undefined, salary_max: undefined,
     currency: 'USD', modality: 'remote', location_label: '',
-  });
+    hiring_mode: 'manual', auto_min_compatibility: undefined,
+    auto_min_category_score: undefined, auto_max_distance_km: undefined,
+    auto_require_identity: false, auto_offer_ttl_hours: 48,
+  };
+  const [form, setForm] = useState<CreateJobPostPayload>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,7 +69,7 @@ export default function JobPostsPage() {
         salary_max: form.salary_max ? Number(form.salary_max) : undefined,
       });
       setShowModal(false);
-      setForm({ job_type_id: 0, title: '', description: '', salary_min: undefined, salary_max: undefined, currency: 'USD', modality: 'remote', location_label: '' });
+      setForm(emptyForm);
       loadPosts();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al crear la publicación');
@@ -293,6 +297,56 @@ export default function JobPostsPage() {
                       />
                     </div>
                   </div>
+
+                  <div className="border-t border-gray-100 pt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Modo de contratación</label>
+                    <select
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={form.hiring_mode}
+                      onChange={(e) => setForm(f => ({ ...f, hiring_mode: e.target.value as 'manual' | 'semi_auto' | 'auto' }))}
+                    >
+                      <option value="manual">Manual (revisás cada aplicación)</option>
+                      <option value="semi_auto">Semi-automático</option>
+                      <option value="auto">Automático (se acepta solo si cumple condiciones)</option>
+                    </select>
+                  </div>
+
+                  {form.hiring_mode !== 'manual' && (
+                    <div className="space-y-3 bg-blue-50 p-3 rounded-lg">
+                      <p className="text-xs text-blue-700">
+                        Un candidato se acepta automáticamente si cumple todas las condiciones que definas. Tiene {form.auto_offer_ttl_hours ?? 48}hs para confirmar la oferta.
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Compatibilidad mín. (%)</label>
+                          <Input type="number" min={0} max={100} value={form.auto_min_compatibility ?? ''}
+                            onChange={(e) => setForm(f => ({ ...f, auto_min_compatibility: e.target.value ? Number(e.target.value) : undefined }))} />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Score mín. por categoría</label>
+                          <Input type="number" min={0} max={100} value={form.auto_min_category_score ?? ''}
+                            onChange={(e) => setForm(f => ({ ...f, auto_min_category_score: e.target.value ? Number(e.target.value) : undefined }))} />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Distancia máx. (km)</label>
+                          <Input type="number" min={0} value={form.auto_max_distance_km ?? ''}
+                            onChange={(e) => setForm(f => ({ ...f, auto_max_distance_km: e.target.value ? Number(e.target.value) : undefined }))} />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Horas para responder oferta</label>
+                          <Input type="number" min={1} value={form.auto_offer_ttl_hours ?? 48}
+                            onChange={(e) => setForm(f => ({ ...f, auto_offer_ttl_hours: e.target.value ? Number(e.target.value) : undefined }))} />
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-2 text-sm text-gray-700">
+                        <input type="checkbox" checked={!!form.auto_require_identity}
+                          onChange={(e) => setForm(f => ({ ...f, auto_require_identity: e.target.checked }))} />
+                        Requerir identidad verificada
+                      </label>
+                    </div>
+                  )}
 
                   <Button type="submit" className="w-full" isLoading={submitting}>
                     Publicar

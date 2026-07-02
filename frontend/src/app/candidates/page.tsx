@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { RoleGuard } from '@/components/common/RoleGuard';
 import { Card, CardContent } from '@/components/common/Card';
@@ -10,50 +10,55 @@ import { Avatar } from '@/components/common/Avatar';
 import { Input } from '@/components/common/Input';
 import { Search } from 'lucide-react';
 import Link from 'next/link';
+import { jobPostsApi, usersApi, type JobPost, type UserMatch, type PublicProfile } from '@/lib/api';
 
-const mockCandidates = [
-  {
-    id: '1',
-    name: 'María López',
-    title: 'Senior Data Scientist',
-    score: 94,
-    skills: ['Python', 'Machine Learning', 'TensorFlow'],
-    compatibility: 95,
-    verified: true,
-    email: 'maria@example.com',
-  },
-  {
-    id: '2',
-    name: 'Juan García',
-    title: 'Full Stack Developer',
-    score: 91,
-    skills: ['React', 'Node.js', 'PostgreSQL'],
-    compatibility: 88,
-    verified: true,
-    email: 'juan@example.com',
-  },
-  {
-    id: '3',
-    name: 'Carlos Rodríguez',
-    title: 'DevOps Engineer',
-    score: 87,
-    skills: ['Docker', 'Kubernetes', 'AWS'],
-    compatibility: 82,
-    verified: false,
-    email: 'carlos@example.com',
-  },
-];
+type CandidateRow = UserMatch & { profile?: PublicProfile };
 
 export default function CandidatesPage() {
+  const [posts, setPosts] = useState<JobPost[]>([]);
+  const [postId, setPostId] = useState<number>(0);
+  const [loadingPosts, setLoadingPosts] = useState(true);
+
+  const [candidates, setCandidates] = useState<CandidateRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  const [contactId, setContactId] = useState<string | null>(null);
+
+  useEffect(() => {
+    jobPostsApi.getMy()
+      .then((p) => {
+        setPosts(p);
+        if (p.length > 0) setPostId(p[0].id);
+      })
+      .catch(() => setPosts([]))
+      .finally(() => setLoadingPosts(false));
+  }, []);
+
+  useEffect(() => {
+    if (!postId) { setCandidates([]); return; }
+    setLoading(true);
+    setError(null);
+    jobPostsApi.getCandidates(postId)
+      .then(async (matches) => {
+        const withProfiles = await Promise.all(
+          matches.map(async (m) => {
+            try {
+              const profile = await usersApi.getPublic(m.user_id);
+              return { ...m, profile };
+            } catch {
+              return { ...m };
+            }
+          })
+        );
+        setCandidates(withProfiles);
+      })
+      .catch((err) => setError(err?.message ?? 'Error al buscar candidatos'))
+      .finally(() => setLoading(false));
+  }, [postId]);
 
   const q = query.trim().toLowerCase();
-  const candidates = mockCandidates.filter((c) =>
-    q === '' ||
-    c.name.toLowerCase().includes(q) ||
-    c.title.toLowerCase().includes(q) ||
-    c.skills.some((s) => s.toLowerCase().includes(q))
+  const filtered = candidates.filter((c) =>
+    q === '' || (c.profile?.name ?? '').toLowerCase().includes(q)
   );
 
   return (
@@ -63,94 +68,113 @@ export default function CandidatesPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Búsqueda de Candidatos</h1>
           <p className="text-gray-600 mt-2">
-            Encuentra los mejores candidatos para tu empresa
+            Encuentra los mejores candidatos para tu empresa, según compatibilidad con tus publicaciones
           </p>
         </div>
 
-        <div className="flex gap-2">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-            <Input
-              placeholder="Buscar por nombre, título o skill..."
-              className="pl-10"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {candidates.length === 0 && (
-          <p className="text-center text-gray-500 py-8">No se encontraron candidatos para "{query}".</p>
+        {!loadingPosts && posts.length === 0 && (
+          <p className="text-center text-gray-500 py-8">
+            Todavía no tenés publicaciones activas.{' '}
+            <Link href="/job-posts" className="text-blue-600 hover:underline">Crear una publicación</Link>
+          </p>
         )}
 
-        <div className="space-y-4">
-          {candidates.map((candidate) => (
-            <Card key={candidate.id}>
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-start gap-4">
-                    <Avatar
-                      alt={candidate.name}
-                      size="lg"
-                      initials={candidate.name.slice(0, 2)}
-                    />
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900">
-                        {candidate.name}
-                      </h3>
-                      <p className="text-gray-600">{candidate.title}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        {candidate.verified && (
-                          <Badge variant="success">✓ Verificado</Badge>
-                        )}
+        {posts.length > 0 && (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Publicación</label>
+              <select
+                className="w-full max-w-sm rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={postId}
+                onChange={(e) => setPostId(Number(e.target.value))}
+              >
+                {posts.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
+              </select>
+            </div>
+
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                <Input
+                  placeholder="Buscar por nombre..."
+                  className="pl-10"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
+            )}
+
+            {loading && (
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <Card key={i}><CardContent className="h-32 animate-pulse bg-gray-50 rounded-xl" /></Card>
+                ))}
+              </div>
+            )}
+
+            {!loading && filtered.length === 0 && !error && (
+              <p className="text-center text-gray-500 py-8">No se encontraron candidatos compatibles para esta publicación.</p>
+            )}
+
+            <div className="space-y-4">
+              {filtered.map((c) => (
+                <Card key={c.user_id}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-start gap-4">
+                        <Avatar
+                          alt={c.profile?.name ?? `Usuario #${c.user_id}`}
+                          size="lg"
+                          initials={(c.profile?.name ?? `U${c.user_id}`).slice(0, 2)}
+                        />
+                        <div>
+                          <h3 className="text-xl font-bold text-gray-900">
+                            {c.profile?.name ?? `Usuario #${c.user_id}`}
+                          </h3>
+                          <div className="flex items-center gap-2 mt-2">
+                            {c.profile?.identity_verified && (
+                              <Badge variant="success">✓ Verificado</Badge>
+                            )}
+                            {c.match.modality_match && <Badge variant="info">Modalidad OK</Badge>}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-blue-600">
+                          {c.profile?.performance_score ?? '—'}
+                        </p>
+                        <p className="text-sm text-gray-600">score</p>
+                        <p className="text-lg font-bold text-green-600 mt-2">
+                          {c.match.compatibility_score}%
+                        </p>
+                        <p className="text-xs text-gray-600">compatibilidad</p>
                       </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-blue-600">
-                      {candidate.score}
-                    </p>
-                    <p className="text-sm text-gray-600">score</p>
-                    <p className="text-lg font-bold text-green-600 mt-2">
-                      {candidate.compatibility}%
-                    </p>
-                    <p className="text-xs text-gray-600">compatibilidad</p>
-                  </div>
-                </div>
 
-                <div className="mb-4">
-                  <p className="text-sm font-medium text-gray-700 mb-2">Habilidades</p>
-                  <div className="flex flex-wrap gap-2">
-                    {candidate.skills.map((skill) => (
-                      <Badge key={skill} variant="info">
-                        {skill}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
+                    {Object.keys(c.match.details).length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-sm font-medium text-gray-700 mb-2">Scores por categoría</p>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(c.match.details).map(([cat, score]) => (
+                            <Badge key={cat} variant="info">{cat}: {score}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                {contactId === candidate.id && (
-                  <p className="text-sm text-gray-600 mb-3 p-2 bg-gray-50 rounded-lg">
-                    📧 Contacto: <a href={`mailto:${candidate.email}`} className="text-blue-600 hover:underline">{candidate.email}</a>
-                  </p>
-                )}
-
-                <div className="flex gap-2">
-                  <Link href={`/professionals/${candidate.id}`} className="flex-1">
-                    <Button className="w-full">Ver Perfil</Button>
-                  </Link>
-                  <Button
-                    variant="secondary"
-                    className="flex-1"
-                    onClick={() => setContactId(contactId === candidate.id ? null : candidate.id)}
-                  >
-                    {contactId === candidate.id ? 'Ocultar Contacto' : 'Contactar'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                    <Link href={`/professionals/${c.user_id}`}>
+                      <Button className="w-full">Ver Perfil</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </MainLayout>
     </RoleGuard>

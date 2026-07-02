@@ -116,10 +116,51 @@ export interface JobType {
   is_active: boolean;
 }
 
+export interface PendingCategory {
+  id: number;
+  job_type_id: number;
+  name: string;
+  description: string | null;
+  employer_weight: number;
+  peer_weight: number;
+  client_weight: number;
+  category_weight: number;
+  suggested_by_ai: boolean;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface ApproveCategoryPayload {
+  name?: string;
+  description?: string;
+  employer_weight?: number;
+  peer_weight?: number;
+  client_weight?: number;
+  category_weight?: number;
+}
+
+export interface CreateCategoryPayload {
+  job_type_id: number;
+  name: string;
+  description?: string;
+  employer_weight: number;
+  peer_weight: number;
+  client_weight: number;
+  category_weight: number;
+}
+
 export const categoriesApi = {
   getAll:      ()              => apiClient.get<Category[]>('/categories'),
   getJobTypes: (active = true) => apiClient.get<JobType[]>('/categories/job-types', { params: { active } }),
   getByJobType: (jobTypeId: number) => apiClient.get<Category[]>('/categories/active', { params: { jobTypeId } }),
+  // ─── Solo admin: gestión de rubros y categorías ─────────────────────────────
+  createJobType:     (data: { name: string; description?: string }) => apiClient.post<JobType>('/categories/job-types', data),
+  activateJobType:   (id: number) => apiClient.patch<JobType>(`/categories/job-types/${id}/activate`),
+  suggestCategories: (jobTypeId: number) => apiClient.post<PendingCategory[]>(`/categories/job-types/${jobTypeId}/suggest`),
+  getPending:        (jobTypeId?: number) => apiClient.get<PendingCategory[]>('/categories/pending', { params: jobTypeId ? { jobTypeId } : undefined }),
+  create:            (data: CreateCategoryPayload) => apiClient.post<PendingCategory>('/categories', data),
+  approve:           (id: number, data?: ApproveCategoryPayload) => apiClient.patch<PendingCategory>(`/categories/${id}/approve`, data ?? {}),
+  reject:            (id: number) => apiClient.delete(`/categories/${id}/reject`),
 };
 
 // ─── Ratings ─────────────────────────────────────────────────────────────────
@@ -163,6 +204,8 @@ export const jobsApi = {
   getMyApplications: ()               => apiClient.get<JobApplication[]>('/hiring/my-applications'),
   apply:             (jobPostId: number) => apiClient.post<JobApplication>(`/hiring/apply/${jobPostId}`),
   withdraw:          (appId: number)  => apiClient.patch(`/hiring/applications/${appId}/withdraw`),
+  respond:           (appId: number, accept: boolean, reason?: string) =>
+    apiClient.patch<JobApplication>(`/hiring/applications/${appId}/respond`, { accept, reason }),
 };
 
 // ─── Publicaciones de empresa (matching/posts) ─────────────────────────────────
@@ -175,12 +218,22 @@ export interface CreateJobPostPayload {
   currency?: string;
   modality?: 'remote' | 'onsite' | 'hybrid';
   location_label?: string;
+  latitude?: number;
+  longitude?: number;
+  min_category_scores?: Record<string, number>;
+  radius_km?: number;
+  hiring_mode?: 'manual' | 'semi_auto' | 'auto';
+  auto_min_compatibility?: number;
+  auto_min_category_score?: number;
+  auto_max_distance_km?: number;
+  auto_require_identity?: boolean;
+  auto_offer_ttl_hours?: number;
 }
 
 export const jobPostsApi = {
   getMy:      () => apiClient.get<JobPost[]>('/matching/posts/my'),
   create:     (payload: CreateJobPostPayload) => apiClient.post<JobPost>('/matching/posts', payload),
-  getCandidates: (postId: number) => apiClient.get<unknown[]>(`/matching/posts/${postId}/candidates`),
+  getCandidates: (postId: number) => apiClient.get<UserMatch[]>(`/matching/posts/${postId}/candidates`),
 };
 
 // ─── Postulaciones recibidas (empresa) ─────────────────────────────────────────
@@ -192,11 +245,61 @@ export const hiringApi = {
 };
 
 // ─── Skills / Matching profile ───────────────────────────────────────────────
+export interface MatchResult {
+  compatibility_score: number;
+  score_match: number;
+  location_match: number;
+  salary_match: boolean;
+  modality_match: boolean;
+  distance_km: number | null;
+  details: Record<string, number>;
+}
+
+export interface JobMatch {
+  job_post_id: number;
+  company_id: number;
+  title: string;
+  match: MatchResult;
+}
+
+export interface UserMatch {
+  user_id: number;
+  job_post_id: number;
+  match: MatchResult;
+}
+
+export interface UserProfile {
+  user_id: number;
+  job_type_id: number;
+  latitude: number | null;
+  longitude: number | null;
+  location_label: string | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  currency: string | null;
+  modality: string | null;
+  is_active: boolean;
+  skill_category_ids: number[];
+}
+
+export interface UpsertUserProfilePayload {
+  job_type_id: number;
+  latitude?: number;
+  longitude?: number;
+  location_label?: string;
+  salary_min?: number;
+  salary_max?: number;
+  currency?: string;
+  modality?: 'remote' | 'onsite' | 'hybrid';
+}
+
 export const matchingApi = {
   getMySkills:  ()                           => apiClient.get<number[]>('/matching/skills'),
   setMySkills:  (skill_category_ids: number[]) => apiClient.put('/matching/skills', { skill_category_ids }),
-  getMyProfile: (jobTypeId: number)           => apiClient.get('/matching/profile/' + jobTypeId),
-  upsertProfile: (data: Record<string, unknown>) => apiClient.put('/matching/profile', data),
+  getMyProfile: (jobTypeId: number)           => apiClient.get<UserProfile | null>('/matching/profile/' + jobTypeId),
+  upsertProfile: (data: UpsertUserProfilePayload) => apiClient.put<UserProfile>('/matching/profile', data),
+  // Empleado busca trabajo: publicaciones compatibles para un rubro dado
+  getJobs:      (jobTypeId: number)           => apiClient.get<JobMatch[]>(`/matching/jobs/${jobTypeId}`),
 };
 
 // ─── Admin / Fraude ─────────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import { Badge } from '@/components/common/Badge';
 import { Button } from '@/components/common/Button';
 import {
   adminApi,
+  categoriesApi,
   type FraudByTypeEntry,
   type HighRiskUserEntry,
   type SuspiciousPairEntry,
@@ -15,10 +16,12 @@ import {
   type LowReliabilityVoterEntry,
   type SourceBiasEntry,
   type BlockedUserEntry,
+  type JobType,
+  type PendingCategory,
 } from '@/lib/api';
-import { AlertTriangle, ShieldAlert, Users2, Network, Gauge, Scale, Ban, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ShieldAlert, Users2, Network, Gauge, Scale, Ban, RefreshCw, Layers } from 'lucide-react';
 
-type Tab = 'overview' | 'high-risk' | 'pairs' | 'clusters' | 'reliability' | 'bias' | 'blocked';
+type Tab = 'overview' | 'high-risk' | 'pairs' | 'clusters' | 'reliability' | 'bias' | 'blocked' | 'categories';
 
 export default function AdminPage() {
   return (
@@ -48,6 +51,7 @@ function AdminDashboard() {
             ['reliability', 'Confiabilidad',    Gauge],
             ['bias',        'Sesgo de fuente',  Scale],
             ['blocked',     'Bloqueados',       Ban],
+            ['categories',  'Rubros y Categorías', Layers],
           ] as [Tab, string, typeof AlertTriangle][]).map(([key, label, Icon]) => (
             <button
               key={key}
@@ -70,6 +74,7 @@ function AdminDashboard() {
         {tab === 'reliability' && <ReliabilityTab />}
         {tab === 'bias'        && <BiasTab />}
         {tab === 'blocked'     && <BlockedTab />}
+        {tab === 'categories'  && <CategoriesTab />}
       </div>
     </MainLayout>
   );
@@ -360,6 +365,175 @@ function BlockedTab() {
           </CardContent>
         </Card>
       ))}
+    </div>
+  );
+}
+// ─── Rubros y categorías ─────────────────────────────────────────────────────
+
+function CategoriesTab() {
+  const [jobTypes, setJobTypes]   = useState<JobType[]>([]);
+  const [pending, setPending]     = useState<PendingCategory[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [busyId, setBusyId]       = useState<number | string | null>(null);
+  const [error, setError]         = useState<string | null>(null);
+
+  const [newJobType, setNewJobType] = useState({ name: '', description: '' });
+  const [creatingJobType, setCreatingJobType] = useState(false);
+
+  const load = () => {
+    setLoading(true);
+    Promise.all([
+      categoriesApi.getJobTypes(false),
+      categoriesApi.getPending(),
+    ])
+      .then(([jt, p]) => { setJobTypes(jt); setPending(p); })
+      .catch((err) => setError(err?.message ?? 'Error al cargar categorías'))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(load, []);
+
+  const handleCreateJobType = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newJobType.name.trim()) return;
+    setCreatingJobType(true);
+    try {
+      await categoriesApi.createJobType(newJobType);
+      setNewJobType({ name: '', description: '' });
+      load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al crear el rubro');
+    } finally {
+      setCreatingJobType(false);
+    }
+  };
+
+  const handleActivate = async (id: number) => {
+    setBusyId(id);
+    try { await categoriesApi.activateJobType(id); load(); }
+    catch (err: unknown) { setError(err instanceof Error ? err.message : 'Error al activar'); }
+    finally { setBusyId(null); }
+  };
+
+  const handleSuggest = async (jobTypeId: number) => {
+    setBusyId(`suggest-${jobTypeId}`);
+    try { await categoriesApi.suggestCategories(jobTypeId); load(); }
+    catch (err: unknown) { setError(err instanceof Error ? err.message : 'Error al sugerir categorías con IA'); }
+    finally { setBusyId(null); }
+  };
+
+  const handleApprove = async (id: number) => {
+    setBusyId(id);
+    try { await categoriesApi.approve(id); load(); }
+    catch (err: unknown) { setError(err instanceof Error ? err.message : 'Error al aprobar'); }
+    finally { setBusyId(null); }
+  };
+
+  const handleReject = async (id: number) => {
+    setBusyId(id);
+    try { await categoriesApi.reject(id); load(); }
+    catch (err: unknown) { setError(err instanceof Error ? err.message : 'Error al rechazar'); }
+    finally { setBusyId(null); }
+  };
+
+  if (loading) return <Loading />;
+
+  return (
+    <div className="space-y-8">
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
+      )}
+
+      {/* Rubros */}
+      <div>
+        <h2 className="text-lg font-bold text-gray-900 mb-3">Rubros (job types)</h2>
+        <Card className="mb-4">
+          <CardContent className="pt-5">
+            <form onSubmit={handleCreateJobType} className="flex flex-wrap gap-2 items-end">
+              <div className="flex-1 min-w-[160px]">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Nombre</label>
+                <input
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={newJobType.name}
+                  onChange={(e) => setNewJobType((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="Ej: Desarrollo de Software"
+                />
+              </div>
+              <div className="flex-1 min-w-[160px]">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Descripción</label>
+                <input
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={newJobType.description}
+                  onChange={(e) => setNewJobType((f) => ({ ...f, description: e.target.value }))}
+                  placeholder="Opcional"
+                />
+              </div>
+              <Button type="submit" isLoading={creatingJobType}>Crear rubro</Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {jobTypes.length === 0 && <Empty text="No hay rubros creados todavía." />}
+        <div className="space-y-2">
+          {jobTypes.map((jt) => (
+            <Card key={jt.id}>
+              <CardContent className="pt-4 flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-gray-900">
+                    {jt.name} <Badge variant={jt.is_active ? 'success' : 'default'}>{jt.is_active ? 'Activo' : 'Inactivo'}</Badge>
+                  </p>
+                  {jt.description && <p className="text-xs text-gray-400">{jt.description}</p>}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm" variant="outline"
+                    isLoading={busyId === `suggest-${jt.id}`}
+                    onClick={() => handleSuggest(jt.id)}
+                  >
+                    Sugerir categorías (IA)
+                  </Button>
+                  {!jt.is_active && (
+                    <Button size="sm" isLoading={busyId === jt.id} onClick={() => handleActivate(jt.id)}>
+                      Activar
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Categorías pendientes */}
+      <div>
+        <h2 className="text-lg font-bold text-gray-900 mb-3">Categorías pendientes de aprobación</h2>
+        {pending.length === 0 && <Empty text="No hay categorías pendientes." />}
+        <div className="space-y-2">
+          {pending.map((c) => (
+            <Card key={c.id}>
+              <CardContent className="pt-4 flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-gray-900">
+                    {c.name} {c.suggested_by_ai && <Badge variant="info">Sugerida por IA</Badge>}
+                  </p>
+                  {c.description && <p className="text-xs text-gray-400">{c.description}</p>}
+                  <p className="text-xs text-gray-400 mt-1">
+                    Pesos: empleador {c.employer_weight} · par {c.peer_weight} · cliente {c.client_weight}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" isLoading={busyId === c.id} onClick={() => handleApprove(c.id)}>
+                    Aprobar
+                  </Button>
+                  <Button size="sm" variant="danger" isLoading={busyId === c.id} onClick={() => handleReject(c.id)}>
+                    Rechazar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

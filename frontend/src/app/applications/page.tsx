@@ -27,6 +27,7 @@ export default function ApplicationsPage() {
   const [error,        setError]        = useState<string | null>(null);
   const [expandedId,   setExpandedId]   = useState<number | null>(null);
   const [withdrawingId,setWithdrawingId]= useState<number | null>(null);
+  const [respondingId, setRespondingId] = useState<number | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -49,6 +50,19 @@ export default function ApplicationsPage() {
       setError(err instanceof Error ? err.message : 'Error al retirar');
     } finally {
       setWithdrawingId(null);
+    }
+  };
+
+  const handleRespond = async (id: number, accept: boolean) => {
+    if (!accept && !confirm('¿Seguro que querés rechazar esta oferta?')) return;
+    setRespondingId(id);
+    try {
+      await jobsApi.respond(id, accept, accept ? undefined : 'No me interesa la oferta');
+      load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al responder la oferta');
+    } finally {
+      setRespondingId(null);
     }
   };
 
@@ -104,7 +118,11 @@ export default function ApplicationsPage() {
           {!loading && apps.length > 0 && (
             <div className="space-y-4">
               {apps.map(app => {
-                const st = STATUS[app.status] ?? { label: app.status, variant: 'default' as const };
+                const offerExpired = !!app.auto_offer_expires_at && new Date(app.auto_offer_expires_at) < new Date();
+                const awaitingResponse = app.status === 'auto_accepted' && !offerExpired;
+                const st = awaitingResponse
+                  ? { label: 'Oferta automática · esperando tu respuesta', variant: 'warning' as const }
+                  : STATUS[app.status] ?? { label: app.status, variant: 'default' as const };
                 const post = app.job_post;
                 const expanded = expandedId === app.id;
 
@@ -193,6 +211,24 @@ export default function ApplicationsPage() {
                         >
                           {expanded ? 'Ocultar detalles' : 'Ver detalles'}
                         </Button>
+                        {awaitingResponse && (
+                          <>
+                            <Button
+                              variant="secondary"
+                              isLoading={respondingId === app.id}
+                              onClick={() => handleRespond(app.id, true)}
+                            >
+                              Confirmar
+                            </Button>
+                            <Button
+                              variant="danger"
+                              isLoading={respondingId === app.id}
+                              onClick={() => handleRespond(app.id, false)}
+                            >
+                              Rechazar oferta
+                            </Button>
+                          </>
+                        )}
                         {app.status === 'pending' && (
                           <Button
                             variant="danger"
